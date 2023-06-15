@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Wavetable Synthesizer</string>
+    <string name="waveselection">WaveTableSelectionPanel</string>
+    <string name="frequency">Frequnecy</string>
+    <string name="frequency_value">%.1f Hz</string>
+    <string name="play">Play</string>
+</resources>
