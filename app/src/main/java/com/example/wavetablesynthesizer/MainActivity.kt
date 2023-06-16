@@ -47,11 +47,16 @@ import com.example.wavetablesynthesizer.ui.theme.orange
 
 class MainActivity : ComponentActivity() {
     private val synthesizerViewModel: WavetableSynthesizerViewModel by viewModels()
-    private val synthesizer = LoggingWavetableSynthesizer()
+    private val synthesizer = NativeWaveTableSynthesizer()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+
+        //This ensures onResume and onCall will be called as they are being called in the MainActivity.kt.
+        lifecycle.addObserver(synthesizer)
+
         synthesizerViewModel.wavetableSynthesizer = synthesizer
+
         setContent {
             WavetableSynthesizerTheme {
                 // A surface container using the 'background' color from the theme
@@ -63,6 +68,10 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+    override fun onDestroy(){
+        super.onDestroy()
+        lifecycle.removeObserver(synthesizer)
     }
 
         override fun onResume() {
