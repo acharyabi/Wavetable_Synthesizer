@@ -5,9 +5,11 @@ import android.os.Bundle
 import android.widget.NumberPicker.OnValueChangeListener
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,6 +28,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -37,13 +40,17 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewModelScope
 import com.example.wavetablesynthesizer.ui.theme.WavetableSynthesizerTheme
 import com.example.wavetablesynthesizer.ui.theme.orange
 
 class MainActivity : ComponentActivity() {
+    private val synthesizerViewModel: WavetableSynthesizerViewModel by viewModels()
+    private val synthesizer = LoggingWavetableSynthesizer()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        requestedOrientation=ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        synthesizerViewModel.wavetableSynthesizer = synthesizer
         setContent {
             WavetableSynthesizerTheme {
                 // A surface container using the 'background' color from the theme
@@ -51,16 +58,23 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    WavetableSynthesizerApp(Modifier)
+                    WavetableSynthesizerApp(Modifier, synthesizerViewModel)
                 }
             }
         }
     }
+    override fun OnResume() {
+        super.onResume()
+        synthesizerViewModel.applyParameters()
+    }
+
 }
 
 @Composable
 fun WavetableSynthesizerApp(
-    modifier:Modifier) {
+    modifier:Modifier,
+    synthesizerViewModel: WavetableSynthesizerViewModel
+) {
     Column(
         modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Top,
@@ -68,15 +82,16 @@ fun WavetableSynthesizerApp(
     ) {
         //Text("Our First Column")
         //Chooese the wavestable that we want to play
-        WavetableSelectionPanel(modifier)
+        WavetableSelectionPanel(modifier, synthesizerViewModel)
         //Control How The Synthesizer Behaves
-        ControlsPanel(modifier)
+        ControlsPanel(modifier, synthesizerViewModel)
     }
 }
 
 @Composable
 fun WavetableSelectionPanel(
-    modifier: Modifier
+    modifier: Modifier,
+    synthesizerViewModel: WavetableSynthesizerViewModel
 ){
     Row (modifier= modifier
         .fillMaxWidth()
@@ -93,7 +108,7 @@ fun WavetableSelectionPanel(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(stringResource(R.string.waveselection))
-            WavetableSelectionButton(modifier)
+            WavetableSelectionButton(modifier, synthesizerViewModel)
         }
         }
 
@@ -101,7 +116,8 @@ fun WavetableSelectionPanel(
 
 @Composable
 fun WavetableSelectionButton(
-    modifier: Modifier
+    modifier: Modifier,
+    synthesizerViewModel: WavetableSynthesizerViewModel
 ){
     Row(
         modifier=modifier
@@ -109,12 +125,11 @@ fun WavetableSelectionButton(
         horizontalArrangement = Arrangement.SpaceEvenly
 
     ){
-        for (wavetable in arrayOf("Sine","Triangle","Square","Saw")){
+        for (wavetable in Wavetable.values()){
             WavetableButton(
                 modifier=   modifier,
-                onClick =   {},
-                label   =   wavetable ,
-
+                onClick =   {synthesizerViewModel.setWavetable(wavetable)},
+                label   =   stringResource(wavetable.toResourceString()) ,
             )
         }
     }
@@ -134,7 +149,8 @@ fun WavetableButton(
 }
 @Composable
 fun ControlsPanel(
-    modifier: Modifier
+    modifier: Modifier,
+    synthesizerViewModel: WavetableSynthesizerViewModel
 ){
     Row(modifier= modifier
         .fillMaxWidth()
@@ -150,17 +166,17 @@ fun ControlsPanel(
                 .border(BorderStroke(5.dp, Color.Black)),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            PitchControl(modifier)
-            PlayControl(modifier)
+            PitchControl(modifier, synthesizerViewModel)
+            PlayControl(modifier, synthesizerViewModel)
         }
         Column (
             modifier= modifier
                 .fillMaxSize()
                 .border(BorderStroke(5.dp, Color.Black)),
-        verticalArrangement = Arrangement.SpaceEvenly,
-        horizontalAlignment = Alignment.CenterHorizontally
+            verticalArrangement = Arrangement.SpaceEvenly,
+            horizontalAlignment = Alignment.CenterHorizontally
                 ){
-            VolumeControl(modifier)
+                VolumeControl(modifier, synthesizerViewModel)
         }
     }
 }
@@ -168,13 +184,15 @@ fun ControlsPanel(
 //Using state and its hoist is called state hoisting in jetpack compose.
 @Composable
 fun PitchControl(
-    modifier: Modifier
+    modifier: Modifier,
+    synthesizerViewModel: WavetableSynthesizerViewModel
 ) {
 
-    //rememberSavable is used because it Also Works During Time of reconfiguration
+    /*//rememberSavable is used because it Also Works During Time of reconfiguration
     var frequnecy = rememberSaveable {
         mutableStateOf(300F)
-    }
+    }*/
+    val frequnecy= synthesizerViewModel.frequency.observeAsState()
 
     /*//It has already been apllied below in the form of the content.
     Slider(modifier = modifier, value = frequnecy.value, onValueChange = {
@@ -185,12 +203,12 @@ fun PitchControl(
     PitchControlContent(
         modifier,
         pitchControlLabel = stringResource(R.string.frequency),
-        value = frequnecy.value,
+        value = frequnecy.value!!,
         onValueChange = {
-            frequnecy.value = it
+            synthesizerViewModel.setFrequencySliderPosition(it)
         },
-        valueRange = 40F..300F,
-        frequencyValueLabel = stringResource(R.string.frequency_value, frequnecy.value)
+        valueRange = 0f..1f,
+        frequencyValueLabel = stringResource(R.string.frequency_value, frequnecy.value!!)
     )
 }
 
@@ -210,32 +228,40 @@ fun PitchControlContent(
 }
 @Composable
 fun PlayControl(
-    modifier: Modifier
+    modifier: Modifier,
+    synthesizerViewModel: WavetableSynthesizerViewModel
 ){
+    val playButtonLabel = synthesizerViewModel.playButtonLabel.observeAsState()
    Button(
        modifier= modifier,
-       onClick = {}
+       onClick = {synthesizerViewModel.playClicked()}
    ) {
-       Text(stringResource(R.string.play))
+       Text(stringResource(playButtonLabel.value!!))
        
    }
 }
 
 @Composable
 fun VolumeControl(
-    modifier:Modifier
-
+    modifier:Modifier,
+    //Initializing View Model.
+    synthesizerViewModel: WavetableSynthesizerViewModel
 ){
-    val volume = rememberSaveable{
+    /*val volume = rememberSaveable{
         mutableStateOf(-10F)
-    }
+    }*/
+    //Now we want to see the changes that occur in the ViewModel
+    val volume = synthesizerViewModel.volume.observeAsState()
+
     VolumeControlContent(
         modifier=modifier,
-        value=volume.value,
+        value=volume.value!!,
         onValueChange={
-            volume.value=it
+            //volume.value=it
+            synthesizerViewModel.setVolume(it)
         },
-        volumeRange = -60F..0F
+        //volumeRange = -60F..0F
+        volumeRange = synthesizerViewModel.volumeRange
     )
 
 }
