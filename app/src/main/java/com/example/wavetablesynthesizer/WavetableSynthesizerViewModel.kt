@@ -27,11 +27,32 @@ class WavetableSynthesizerViewModel:ViewModel() {
         val frequencyInHz = frequencyInHzFromSliderPosition(frequencySliderPosition)
         _frequency.value = frequencyInHz
         viewModelScope.launch {
-            wavetableSynthesizer?.setFrequency(frequencySliderPosition)
+            wavetableSynthesizer?.setFrequency(frequencyInHz)
         }
     }
 
-    private val frequencyRange = 40f..300f
+    private val frequencyRange = 40f..3000f
+
+
+    private val _volume = MutableLiveData(-24f)
+    val volume: LiveData<Float>
+        get() {
+            return _volume
+        }
+    val volumeRange = (-60f)..0f
+
+    fun setVolume(volumeInDb: Float) {
+        _volume.value = volumeInDb
+        viewModelScope.launch {
+            wavetableSynthesizer?.setVolume(volumeInDb)
+        }
+    }
+
+    private var wavetable = Wavetable.SINE
+
+    /**
+     * @param frequnecySliderPositionn slider position in[0,1] range.
+     */
 
     private fun frequencyInHzFromSliderPosition(sliderPosition: Float): Float {
         val rangePosition = linearToExponential(sliderPosition)
@@ -55,12 +76,15 @@ class WavetableSynthesizerViewModel:ViewModel() {
         }
 
         fun valueFromRangePosition(range: ClosedFloatingPointRange<Float>, rangePosition: Float):Float{
-           return range.start + (range.endInclusive - range.start) * rangePosition
+            assert(rangePosition in 0f..1f)
+
+            return range.start + (range.endInclusive - range.start) * rangePosition
         }
 
 
         fun rangePositionFromValue(range: ClosedFloatingPointRange<Float>, value: Float): Float {
             assert(value in range)
+
             return (value - range.start) / (range.endInclusive - range.start)
         }
 
@@ -74,21 +98,6 @@ class WavetableSynthesizerViewModel:ViewModel() {
         }
     }
 
-    private var _volume = MutableLiveData(-24f)
-    val volume: LiveData<Float>
-        get() {
-            return _volume
-        }
-    val volumeRange = (-60f)..0f
-
-    fun setVolume(volumeInDb: Float) {
-        _volume.value = volumeInDb
-        viewModelScope.launch {
-            wavetableSynthesizer?.setVolume(volumeInDb)
-        }
-    }
-
-    private var wavetable = Wavetable.SINE
     fun setWavetable(newWavetable: Wavetable) {
         wavetable = newWavetable
         viewModelScope.launch {

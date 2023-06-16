@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.VolumeMute
@@ -49,7 +50,7 @@ class MainActivity : ComponentActivity() {
     private val synthesizer = LoggingWavetableSynthesizer()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         synthesizerViewModel.wavetableSynthesizer = synthesizer
         setContent {
             WavetableSynthesizerTheme {
@@ -63,9 +64,10 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-    override fun OnResume() {
-        super.onResume()
-        synthesizerViewModel.applyParameters()
+
+        override fun onResume() {
+            super.onResume()
+            synthesizerViewModel.applyParameters()
     }
 
 }
@@ -77,11 +79,11 @@ fun WavetableSynthesizerApp(
 ) {
     Column(
         modifier = modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top,
-        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         //Text("Our First Column")
-        //Chooese the wavestable that we want to play
+        //Choose the waves-table that we want to play
         WavetableSelectionPanel(modifier, synthesizerViewModel)
         //Control How The Synthesizer Behaves
         ControlsPanel(modifier, synthesizerViewModel)
@@ -97,13 +99,14 @@ fun WavetableSelectionPanel(
         .fillMaxWidth()
         .fillMaxHeight(0.5f)
         .border(BorderStroke(5.dp, Color.Black)),
-    //Colums have vertical arrangement and horizontal alignment and rows have exactly opposite.
+    //Columns have vertical arrangement and horizontal alignment and rows have exactly opposite.
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ){
         Column(
             modifier=modifier
-                .fillMaxSize(),
+                .fillMaxWidth()
+                .fillMaxHeight(),
             verticalArrangement = Arrangement.SpaceEvenly,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -189,26 +192,37 @@ fun PitchControl(
 ) {
 
     /*//rememberSavable is used because it Also Works During Time of reconfiguration
-    var frequnecy = rememberSaveable {
+    var frequency = rememberSavable {
         mutableStateOf(300F)
     }*/
-    val frequnecy= synthesizerViewModel.frequency.observeAsState()
+    val frequency= synthesizerViewModel.frequency.observeAsState()
 
-    /*//It has already been apllied below in the form of the content.
-    Slider(modifier = modifier, value = frequnecy.value, onValueChange = {
-        frequnecy.value = it
+    /*//It has already been applied below in the form of the content.
+    Slider(modifier = modifier, value = frequency.value, onValueChange = {
+        frequency.value = it
     }, valueRange = 40F..3000F)
 
+    // the slider position state is hoisted by this composable; no need to embed it into
+  // the ViewModel, which ideally, shouldn't be aware of the UI.
+  // When the slider position changes, this composable will be recomposed as we explained in the UI tutorial.
+
      */
+    val sliderPosition = rememberSaveable {
+        mutableStateOf(
+            // we use the ViewModel's convenience function to get the initial slider position
+            synthesizerViewModel.sliderPositionFromFrequencyInHz(frequency.value!!)
+        )
+    }
     PitchControlContent(
-        modifier,
+        modifier=modifier,
         pitchControlLabel = stringResource(R.string.frequency),
-        value = frequnecy.value!!,
+        value = sliderPosition.value,
         onValueChange = {
+            sliderPosition.value = it
             synthesizerViewModel.setFrequencySliderPosition(it)
         },
-        valueRange = 0f..1f,
-        frequencyValueLabel = stringResource(R.string.frequency_value, frequnecy.value!!)
+        valueRange = 0F..1F,
+        frequencyValueLabel = stringResource(R.string.frequency_value, frequency.value!!)
     )
 }
 
@@ -223,8 +237,13 @@ fun PitchControlContent(
     frequencyValueLabel:String
 ){
     Text(pitchControlLabel)
-    Slider(modifier = modifier, value= value , onValueChange= onValueChange, valueRange=40F..3000F )
-    Text(frequencyValueLabel)
+    Slider(modifier = modifier, value= value , onValueChange= onValueChange, valueRange=valueRange )
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Text(modifier = modifier, text = frequencyValueLabel)
+    }
 }
 @Composable
 fun PlayControl(
@@ -237,7 +256,6 @@ fun PlayControl(
        onClick = {synthesizerViewModel.playClicked()}
    ) {
        Text(stringResource(playButtonLabel.value!!))
-       
    }
 }
 
@@ -247,7 +265,7 @@ fun VolumeControl(
     //Initializing View Model.
     synthesizerViewModel: WavetableSynthesizerViewModel
 ){
-    /*val volume = rememberSaveable{
+    /*val volume = rememberSavable{
         mutableStateOf(-10F)
     }*/
     //Now we want to see the changes that occur in the ViewModel
@@ -272,21 +290,30 @@ fun VolumeControlContent(
     onValueChange: (Float) -> Unit,
     volumeRange: ClosedFloatingPointRange<Float>
 
-){
+) {
     val screenHeight = LocalConfiguration.current.screenHeightDp
     val sliderHeight = screenHeight / 4
 
-    Icon(imageVector = Icons.Filled.VolumeUp, contentDescription =null )
-    Slider(
-        value = value,
-        //Changing with respect to the change in the slider.
-        onValueChange = onValueChange,
-        modifier= modifier
-            .width(sliderHeight.dp)
-            .rotate(270f) ,
-        valueRange = volumeRange
-    )
-    Icon(imageVector = Icons.Filled.VolumeMute, contentDescription =null )
+    Icon(imageVector = Icons.Filled.VolumeUp, contentDescription = null)
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .fillMaxHeight(0.8f)
+            .offset(y = 40.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
+        Slider(
+            value = value,
+            //Changing with respect to the change in the slider.
+            onValueChange = onValueChange,
+            modifier = modifier
+                .width(sliderHeight.dp)
+                .rotate(270f),
+            valueRange = volumeRange
+        )
+        Icon(imageVector = Icons.Filled.VolumeMute, contentDescription = null)
+    }
 }
 
 //We can remove the boarder to make the user interface look more intuitive.
