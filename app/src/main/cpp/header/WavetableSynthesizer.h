@@ -3,14 +3,22 @@
 //
 
 #pragma once
+#include <memory>
 
 namespace wavetablesynthesizer{
     enum class Wavetable{
         SINE, TRIANGLE, SQUARE, SAW
     };
 
+    class AudioPlayer;
+    class AudioSource;
+
+    constexpr auto sampleRate = 48000;
+
     class WavetableSynthesizer{
     public:
+        WavetableSynthesizer();
+        ~WavetableSynthesizer()= default;
         void play();
         void stop();
         bool isPlaying();
@@ -20,5 +28,7 @@ namespace wavetablesynthesizer{
 
     private:
         bool _isPlaying= false;
+        std::shared_ptr<AudioSource> _oscillator;
+        std::unique_ptr<AudioPlayer>_audioPlayer;
     };
 }

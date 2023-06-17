@@ -3,7 +3,7 @@
 //
 
 #pragma once
-//Contains Defination Of The Interface
+//Contains Definition Of The Interface
 namespace wavetablesynthesizer{
     class AudioPlayer{
     public:

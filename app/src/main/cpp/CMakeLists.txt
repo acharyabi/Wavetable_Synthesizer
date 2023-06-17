@@ -22,13 +22,17 @@ add_library( # Sets the name of the library.
              SHARED
 
              # Provides a relative path to your source file(s).
+        WaveOscillator.cpp
         WavetableSynthesizer.cpp
         wavetablesynthesizer-native-lib.cpp)
 
-# Add the following line to include the <stdint.h> header.
-target_include_directories(AudioPlayer PRIVATE header)
+find_package(oboe REQUIRED CONFIG)
 
-include_directories(header)
+target_link_libraries(wavetablesynthesizer)
+# Add the following line to include the <stdint.h> header.
+#target_include_directories(AudioPlayer PRIVATE header)
+
+include_directories(include)
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because CMake includes system libraries in the search path by
 # default, you only need to specify the name of the public NDK library
@@ -51,4 +55,6 @@ target_link_libraries( # Specifies the target library.
 
                        # Links the target library to the log library
                        # included in the NDK.
+                        wavetablesynthesizer
+                        oboe::oboe
                        ${log-lib} )
