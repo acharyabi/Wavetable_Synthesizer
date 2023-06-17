@@ -25,6 +25,9 @@ add_library( # Sets the name of the library.
         WavetableSynthesizer.cpp
         wavetablesynthesizer-native-lib.cpp)
 
+# Add the following line to include the <stdint.h> header.
+target_include_directories(AudioPlayer PRIVATE header)
+
 include_directories(header)
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because CMake includes system libraries in the search path by
