@@ -29,8 +29,7 @@ namespace wavetablesynthesizer {
         ) override;
 
     private:
-        std::shared_ptr<<AudioSource>
-        _source;
+        std::shared_ptr<AudioSource>_source;
         std::shared_ptr <oboe::AudioStream> _stream;
         int _samplingRate;
     };

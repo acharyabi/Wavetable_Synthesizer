@@ -4,13 +4,16 @@
 
 #include  "header/Log.h"
 #include "header/WavetableSynthesizer.h"
-#include "OboeAudioPlayer.h"
-#include "WavetableOscillator.h"
+#include "header/OboeAudioPlayer.h"
+#include "header/WavetableOscillator.h"
 
 namespace wavetablesynthesizer{
     WavetableSynthesizer::WavetableSynthesizer()
     : _oscillator{std::make_shared<A4Oscillator>(sampleRate)},
     _audioPlayer{std::make_unique<OboeAudioPlayer>(_oscillator, sampleRate)}{}
+
+    WavetableSynthesizer::~WavetableSynthesizer()= default;
+
     void WavetableSynthesizer::play (){
         LOGD("play() called");
         const auto result = _audioPlayer-> play();

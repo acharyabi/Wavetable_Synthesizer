@@ -18,10 +18,10 @@ namespace wavetablesynthesizer{
     class WavetableSynthesizer{
     public:
         WavetableSynthesizer();
-        ~WavetableSynthesizer()= default;
+        ~WavetableSynthesizer();
         void play();
         void stop();
-        bool isPlaying();
+        bool isPlaying() const;
         void setFrequency(float frequencyInHz);
         void setVolume(float volumeInDb);
         void setWavetable(Wavetable wavetable);
