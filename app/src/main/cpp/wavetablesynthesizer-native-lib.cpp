@@ -21,7 +21,7 @@
 #include "header/Log.h"
 #include "header/WavetableSynthesizer.h"
 
-//C++ code so that it'll be compileable with the c++ code.
+//C++ code so that it'll be compilable with the c++ code.
 extern "C" {
 JNIEXPORT jlong JNICALL
 Java_com_example_wavetablesynthesizer_NativeWaveTableSynthesizer_create(JNIEnv *env, jobject thiz) {
@@ -39,7 +39,7 @@ Java_com_example_wavetablesynthesizer_NativeWaveTableSynthesizer_delete(JNIEnv *
                                                                         jlong synthesizerHandle) {
     auto* synthesizer = reinterpret_cast<wavetablesynthesizer::WavetableSynthesizer*>(synthesizerHandle);
     if(not synthesizer){
-        LOGD("Attempted to destroy an uninitalized synthesizer.");
+        LOGD("Attempted to destroy an uninitialized synthesizer.");
     }
     delete synthesizer;
 }

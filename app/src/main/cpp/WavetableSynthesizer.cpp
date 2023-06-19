@@ -6,44 +6,58 @@
 #include "header/WavetableSynthesizer.h"
 #include "header/OboeAudioPlayer.h"
 #include "header/WavetableOscillator.h"
+#include <cmath>
 
-namespace wavetablesynthesizer{
+namespace wavetablesynthesizer {
+    float dBToAmplitude(float dB) {
+        return std::pow(10.f, dB / 20.f);
+    }
+
     WavetableSynthesizer::WavetableSynthesizer()
-    : _oscillator{std::make_shared<A4Oscillator>(sampleRate)},
-    _audioPlayer{std::make_unique<OboeAudioPlayer>(_oscillator, sampleRate)}{}
+            : _oscillator{std::make_shared<WavetableOscillator>(_wavetableFactory.getWaveTable(_currentWavetable), sampleRate)},
+              _audioPlayer{
+                      std::make_unique<OboeAudioPlayer>(_oscillator, sampleRate)} {}
 
-    WavetableSynthesizer::~WavetableSynthesizer()= default;
+    WavetableSynthesizer::~WavetableSynthesizer() = default;
 
-    void WavetableSynthesizer::play (){
+    bool WavetableSynthesizer::isPlaying() const {
+        LOGD("isPlaying() called");
+        return _isPlaying;
+    }
+
+    void WavetableSynthesizer::play() {
         LOGD("play() called");
-        const auto result = _audioPlayer-> play();
-        if(result==0) {
+        std::lock_guard<std::mutex> lock(_mutex);
+        const auto result = _audioPlayer->play();
+        if (result == 0) {
             _isPlaying = true;
-        }else{
+        } else {
             LOGD("Could not start playback.");
         }
     }
-    void WavetableSynthesizer::stop(){
+
+    void WavetableSynthesizer::setFrequency(float frequencyInHz) {
+        LOGD("Frequency set to %.2f Hz.", frequencyInHz);
+        _oscillator->setFrequency(frequencyInHz);
+    }
+
+    void WavetableSynthesizer::setVolume(float volumeInDb) {
+        LOGD("Volume set to %.2f dB.", volumeInDb);
+        const auto amplitude = dBToAmplitude(volumeInDb);
+        _oscillator->setAmplitude(amplitude);
+    }
+
+    void WavetableSynthesizer::setWavetable(Wavetable wavetable) {
+        if (_currentWavetable != wavetable) {
+            _currentWavetable = wavetable;
+            _oscillator->setWavetable(_wavetableFactory.getWaveTable(wavetable));
+        }
+    }
+
+    void WavetableSynthesizer::stop() {
         LOGD("stop() called");
+        std::lock_guard<std::mutex> lock(_mutex);
         _audioPlayer->stop();
-        _isPlaying= false;
-
+        _isPlaying = false;
     }
-    bool WavetableSynthesizer::isPlaying() const{
-        LOGD("isPlaying() called");
-        return _isPlaying;
-
-    }
-    void WavetableSynthesizer::setFrequency(float frequencyInHz){
-        LOGD("setFrequency() called with %.2f Hz argument.", frequencyInHz);
-
-    }
-    void WavetableSynthesizer::setVolume(float volumeInDb){
-        LOGD("setFrequency() called with %.2f db argument.", volumeInDb);
-
-    }
-    void WavetableSynthesizer::setWavetable(Wavetable wavetable){
-        LOGD("setWavetable() called with %.d argument", static_cast<int>(wavetable));
-    }
-}
-
+}  // namespace wavetablesynthesizer
